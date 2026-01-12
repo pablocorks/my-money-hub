@@ -3,14 +3,8 @@ import { Bill } from '@/hooks/useBills';
 import { useCategories } from '@/hooks/useCategories';
 import { BillCard } from './BillCard';
 import { BillForm } from './BillForm';
+import { CategoryFilter } from './CategoryFilter';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Plus, ArrowUpDown } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -19,11 +13,13 @@ interface BillsBlockProps {
   bills: Bill[];
   onCreateBill?: (data: any) => void;
   onUpdateBill?: (data: any) => void;
+  onDeleteBill?: (id: string) => void;
   onPayBill?: (data: { id: string; paidValue: number }) => void;
   onUnpayBill?: (id: string) => void;
   showPayButton?: boolean;
   showUnpayButton?: boolean;
   showAddButton?: boolean;
+  showEditButton?: boolean;
   emptyMessage?: string;
   maxHeight?: string;
   variant?: 'default' | 'danger' | 'success';
@@ -34,11 +30,13 @@ export function BillsBlock({
   bills,
   onCreateBill,
   onUpdateBill,
+  onDeleteBill,
   onPayBill,
   onUnpayBill,
   showPayButton = false,
   showUnpayButton = false,
   showAddButton = false,
+  showEditButton = true,
   emptyMessage = 'Nenhuma conta encontrada',
   maxHeight = '400px',
   variant = 'default',
@@ -46,16 +44,16 @@ export function BillsBlock({
   const { expenseCategories } = useCategories();
   const [formOpen, setFormOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'date' | 'value'>('date');
 
   const filteredAndSortedBills = useMemo(() => {
     let result = [...bills];
 
-    // Filter by category
-    if (categoryFilter !== 'all') {
+    // Filter by categories (checkbox multi-select)
+    if (categoryFilters.length > 0) {
       result = result.filter((bill) =>
-        bill.categories?.some((cat) => cat.id === categoryFilter)
+        bill.categories?.some((cat) => categoryFilters.includes(cat.id))
       );
     }
 
@@ -69,7 +67,7 @@ export function BillsBlock({
     });
 
     return result;
-  }, [bills, categoryFilter, sortBy]);
+  }, [bills, categoryFilters, sortBy]);
 
   const variantStyles = {
     default: 'border-border',
@@ -88,19 +86,11 @@ export function BillsBlock({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <h3 className="text-lg font-display font-semibold">{title}</h3>
         <div className="flex items-center gap-2 flex-wrap">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {expenseCategories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CategoryFilter
+            categories={expenseCategories}
+            selectedCategories={categoryFilters}
+            onSelectionChange={setCategoryFilters}
+          />
 
           <Button
             variant="ghost"
@@ -143,6 +133,7 @@ export function BillsBlock({
                 onEdit={handleEdit}
                 showPayButton={showPayButton}
                 showUnpayButton={showUnpayButton}
+                showEditButton={showEditButton}
               />
             ))
           )}
@@ -156,6 +147,7 @@ export function BillsBlock({
           onOpenChange={setFormOpen}
           onSubmit={onCreateBill}
           onUpdate={onUpdateBill}
+          onDelete={onDeleteBill}
           editingBill={editingBill}
         />
       )}

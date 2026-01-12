@@ -23,6 +23,7 @@ interface BillCardProps {
   onEdit: (bill: Bill) => void;
   showPayButton?: boolean;
   showUnpayButton?: boolean;
+  showEditButton?: boolean;
 }
 
 export function BillCard({
@@ -32,6 +33,7 @@ export function BillCard({
   onEdit,
   showPayButton = false,
   showUnpayButton = false,
+  showEditButton = true,
 }: BillCardProps) {
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [paidValue, setPaidValue] = useState(bill.value?.toString() || '');
@@ -52,61 +54,60 @@ export function BillCard({
 
   return (
     <>
-      <div className="flex items-center gap-4 py-3 px-4 bg-card rounded-lg border border-border hover:shadow-card transition-shadow">
-        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-6 gap-2 sm:gap-4 items-center">
-          {/* Date */}
-          <div className="text-sm text-muted-foreground">
-            {format(new Date(bill.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+      <div className="py-3 px-4 bg-card rounded-lg border border-border hover:shadow-card transition-shadow">
+        {/* Line 1: Date, Name, Installment, Value */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="text-sm text-muted-foreground">
+              {format(new Date(bill.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+            </div>
+            <div className="font-medium truncate flex items-center gap-2">
+              {bill.name}
+              {bill.total_installments && bill.current_installment && (
+                <span className="bg-secondary px-2 py-0.5 rounded text-xs text-muted-foreground">
+                  {bill.current_installment}/{bill.total_installments}
+                </span>
+              )}
+            </div>
           </div>
+          <div className="font-semibold text-foreground">
+            {bill.status === 'paid' ? formatCurrency(bill.paid_value) : formatCurrency(bill.value)}
+          </div>
+        </div>
 
-          {/* Name */}
-          <div className="sm:col-span-2 font-medium truncate">{bill.name}</div>
-
-          {/* Categories */}
+        {/* Line 2: Categories, Edit button, Pay/Unpay button */}
+        <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-1">
             {bill.categories?.map((cat) => (
               <CategoryTag key={cat.id} name={cat.name} color={cat.color} />
             ))}
           </div>
 
-          {/* Value */}
-          <div className="font-semibold text-foreground">
-            {bill.status === 'paid' ? formatCurrency(bill.paid_value) : formatCurrency(bill.value)}
-          </div>
+          <div className="flex items-center gap-2">
+            {showEditButton && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(bill)}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+            )}
 
-          {/* Installment */}
-          <div className="text-sm text-muted-foreground">
-            {bill.total_installments && bill.current_installment && (
-              <span className="bg-secondary px-2 py-1 rounded text-xs">
-                {bill.current_installment}/{bill.total_installments}
-              </span>
+            {showPayButton && (
+              <Button
+                size="sm"
+                className="h-8 gradient-success text-success-foreground"
+                onClick={() => setPayDialogOpen(true)}
+              >
+                <Check className="w-4 h-4 mr-1" />
+                Paguei
+              </Button>
+            )}
+
+            {showUnpayButton && (
+              <Button size="sm" variant="outline" className="h-8" onClick={() => onUnpay(bill.id)}>
+                <Undo2 className="w-4 h-4 mr-1" />
+                Voltar
+              </Button>
             )}
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(bill)}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-
-          {showPayButton && (
-            <Button
-              size="sm"
-              className="gradient-success text-success-foreground"
-              onClick={() => setPayDialogOpen(true)}
-            >
-              <Check className="w-4 h-4 mr-1" />
-              Paguei
-            </Button>
-          )}
-
-          {showUnpayButton && (
-            <Button size="sm" variant="outline" onClick={() => onUnpay(bill.id)}>
-              <Undo2 className="w-4 h-4 mr-1" />
-              Voltar
-            </Button>
-          )}
         </div>
       </div>
 

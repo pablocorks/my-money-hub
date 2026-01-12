@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { IncomeEntry } from '@/hooks/useIncome';
 import { useCategories } from '@/hooks/useCategories';
 import { CategoryTag } from './CategoryTag';
+import { CategoryFilter } from './CategoryFilter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,12 +18,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Pencil, TrendingUp } from 'lucide-react';
+import { Plus, Pencil, TrendingUp, Trash2 } from 'lucide-react';
 
 interface IncomeBlockProps {
   income: IncomeEntry[];
   onCreateIncome: (data: any) => void;
   onUpdateIncome: (data: any) => void;
+  onDeleteIncome?: (id: string) => void;
   title?: string;
   maxHeight?: string;
   showAllEntries?: boolean;
@@ -32,6 +34,7 @@ export function IncomeBlock({
   income,
   onCreateIncome,
   onUpdateIncome,
+  onDeleteIncome,
   title = 'Entradas de Dinheiro',
   maxHeight = '400px',
   showAllEntries = false,
@@ -39,6 +42,7 @@ export function IncomeBlock({
   const { incomeCategories } = useCategories();
   const [formOpen, setFormOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<IncomeEntry | null>(null);
+  const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     date: '',
     origin: '',
@@ -47,15 +51,25 @@ export function IncomeBlock({
     category_ids: [] as string[],
   });
 
-  // Filter to last 30 days if not showing all
-  const filteredIncome = showAllEntries
-    ? income
-    : income.filter((entry) => {
-        const entryDate = new Date(entry.date);
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return entryDate >= thirtyDaysAgo;
-      });
+  // Filter and apply category filters
+  const filteredIncome = useMemo(() => {
+    let result = showAllEntries
+      ? income
+      : income.filter((entry) => {
+          const entryDate = new Date(entry.date);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return entryDate >= thirtyDaysAgo;
+        });
+
+    if (categoryFilters.length > 0) {
+      result = result.filter((entry) =>
+        entry.categories?.some((cat) => categoryFilters.includes(cat.id))
+      );
+    }
+
+    return result;
+  }, [income, showAllEntries, categoryFilters]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -114,6 +128,13 @@ export function IncomeBlock({
     setFormOpen(false);
   };
 
+  const handleDelete = () => {
+    if (editingIncome && onDeleteIncome) {
+      onDeleteIncome(editingIncome.id);
+      setFormOpen(false);
+    }
+  };
+
   const toggleCategory = (categoryId: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -132,14 +153,21 @@ export function IncomeBlock({
           </div>
           <h3 className="text-lg font-display font-semibold">{title}</h3>
         </div>
-        <Button
-          size="sm"
-          className="h-8 gradient-success text-success-foreground"
-          onClick={() => handleOpenForm()}
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Nova
-        </Button>
+        <div className="flex items-center gap-2">
+          <CategoryFilter
+            categories={incomeCategories}
+            selectedCategories={categoryFilters}
+            onSelectionChange={setCategoryFilters}
+          />
+          <Button
+            size="sm"
+            className="h-8 gradient-success text-success-foreground"
+            onClick={() => handleOpenForm()}
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Nova
+          </Button>
+        </div>
       </div>
 
       <ScrollArea style={{ maxHeight }} className="pr-2">
@@ -152,23 +180,30 @@ export function IncomeBlock({
             filteredIncome.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-4 py-3 px-4 bg-background rounded-lg border border-border hover:shadow-card transition-shadow"
+                className="py-3 px-4 bg-background rounded-lg border border-border hover:shadow-card transition-shadow"
               >
-                <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
-                  <div className="text-sm text-muted-foreground">
-                    {format(new Date(entry.date), 'dd/MM/yyyy', { locale: ptBR })}
+                {/* Line 1: Date, Origin, Value */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="text-sm text-muted-foreground">
+                      {format(new Date(entry.date), 'dd/MM/yyyy', { locale: ptBR })}
+                    </div>
+                    <div className="font-medium truncate">{entry.origin}</div>
                   </div>
-                  <div className="font-medium truncate">{entry.origin}</div>
+                  <div className="font-semibold text-success">{formatCurrency(entry.value)}</div>
+                </div>
+
+                {/* Line 2: Categories, Edit button */}
+                <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
                     {entry.categories?.map((cat) => (
                       <CategoryTag key={cat.id} name={cat.name} color={cat.color} />
                     ))}
                   </div>
-                  <div className="font-semibold text-success">{formatCurrency(entry.value)}</div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenForm(entry)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleOpenForm(entry)}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
               </div>
             ))
           )}
@@ -261,13 +296,21 @@ export function IncomeBlock({
               </div>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="gradient-success text-success-foreground">
-                {editingIncome ? 'Salvar' : 'Cadastrar'}
-              </Button>
+            <DialogFooter className="flex justify-between">
+              {editingIncome && onDeleteIncome && (
+                <Button type="button" variant="destructive" onClick={handleDelete}>
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Apagar
+                </Button>
+              )}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="gradient-success text-success-foreground">
+                  {editingIncome ? 'Salvar' : 'Cadastrar'}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </DialogContent>

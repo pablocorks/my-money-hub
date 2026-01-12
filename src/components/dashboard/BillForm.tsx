@@ -21,16 +21,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2 } from 'lucide-react';
 
 interface BillFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateBillData) => void;
   onUpdate?: (data: { id: string; data: Partial<Bill>; category_ids?: string[] }) => void;
+  onDelete?: (id: string) => void;
   editingBill?: Bill | null;
 }
 
-export function BillForm({ open, onOpenChange, onSubmit, onUpdate, editingBill }: BillFormProps) {
+export function BillForm({ open, onOpenChange, onSubmit, onUpdate, onDelete, editingBill }: BillFormProps) {
   const { expenseCategories } = useCategories();
   const [formData, setFormData] = useState<CreateBillData>({
     name: '',
@@ -86,6 +88,13 @@ export function BillForm({ open, onOpenChange, onSubmit, onUpdate, editingBill }
       onSubmit(formData);
     }
     onOpenChange(false);
+  };
+
+  const handleDelete = () => {
+    if (editingBill && onDelete) {
+      onDelete(editingBill.id);
+      onOpenChange(false);
+    }
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -250,13 +259,21 @@ export function BillForm({ open, onOpenChange, onSubmit, onUpdate, editingBill }
             />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" className="gradient-primary text-primary-foreground">
-              {editingBill ? 'Salvar' : 'Cadastrar'}
-            </Button>
+          <DialogFooter className="flex justify-between">
+            {editingBill && onDelete && (
+              <Button type="button" variant="destructive" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4 mr-1" />
+                Apagar
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="gradient-primary text-primary-foreground">
+                {editingBill ? 'Salvar' : 'Cadastrar'}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

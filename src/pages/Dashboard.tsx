@@ -4,15 +4,18 @@ import { BillsBlock } from '@/components/dashboard/BillsBlock';
 import { IncomeBlock } from '@/components/dashboard/IncomeBlock';
 import { ExpenseBlock } from '@/components/dashboard/ExpenseBlock';
 import { SummaryBlock } from '@/components/dashboard/SummaryBlock';
+import { IncomePredictionBlock } from '@/components/dashboard/IncomePredictionBlock';
 import { useBills } from '@/hooks/useBills';
 import { useIncome } from '@/hooks/useIncome';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useIncomePredictions } from '@/hooks/useIncomePredictions';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Dashboard() {
-  const { bills, isLoading: billsLoading, createBill, updateBill, payBill, unpayBill } = useBills();
-  const { income, isLoading: incomeLoading, createIncome, updateIncome } = useIncome();
-  const { expenses, isLoading: expensesLoading, createExpense } = useExpenses();
+  const { bills, isLoading: billsLoading, createBill, updateBill, deleteBill, payBill, unpayBill } = useBills();
+  const { income, isLoading: incomeLoading, createIncome, updateIncome, deleteIncome } = useIncome();
+  const { expenses, isLoading: expensesLoading, createExpense, updateExpense, deleteExpense } = useExpenses();
+  const { predictions, isLoading: predictionsLoading, createPrediction, updatePrediction, markAsPaid, deletePrediction } = useIncomePredictions();
 
   const currentMonthBills = useMemo(() => {
     const now = new Date();
@@ -42,7 +45,7 @@ export default function Dashboard() {
     };
   }, [bills]);
 
-  const isLoading = billsLoading || incomeLoading || expensesLoading;
+  const isLoading = billsLoading || incomeLoading || expensesLoading || predictionsLoading;
 
   if (isLoading) {
     return (
@@ -50,7 +53,7 @@ export default function Dashboard() {
         <Header />
         <main className="container py-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
+            {[...Array(7)].map((_, i) => (
               <Skeleton key={i} className="h-[400px] rounded-xl" />
             ))}
           </div>
@@ -64,52 +67,62 @@ export default function Dashboard() {
       <Header />
       <main className="container py-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Block 1: Bills to Pay */}
           <BillsBlock
             title="Contas a Pagar"
             bills={currentMonthBills.pending}
             onCreateBill={createBill}
             onUpdateBill={updateBill}
+            onDeleteBill={deleteBill}
             onPayBill={payBill}
             showPayButton
             showAddButton
             emptyMessage="Nenhuma conta a pagar este mês 🎉"
           />
 
-          {/* Block 2: Paid Bills */}
           <BillsBlock
             title="Contas Pagas"
             bills={currentMonthBills.paid}
             onUnpayBill={unpayBill}
-            onUpdateBill={updateBill}
             showUnpayButton
+            showEditButton={false}
             variant="success"
             emptyMessage="Nenhuma conta paga este mês"
           />
 
-          {/* Block 3: Overdue Bills */}
           <BillsBlock
             title="Contas Vencidas"
             bills={currentMonthBills.overdue}
             onPayBill={payBill}
             onUpdateBill={updateBill}
+            onDeleteBill={deleteBill}
             showPayButton
             variant="danger"
             emptyMessage="Nenhuma conta vencida 👏"
           />
 
-          {/* Block 4: Income */}
           <IncomeBlock
             income={income}
             onCreateIncome={createIncome}
             onUpdateIncome={updateIncome}
+            onDeleteIncome={deleteIncome}
           />
 
-          {/* Block 5: Expenses */}
-          <ExpenseBlock expenses={expenses} onCreateExpense={createExpense} />
+          <IncomePredictionBlock
+            predictions={predictions}
+            onCreatePrediction={createPrediction}
+            onUpdatePrediction={updatePrediction}
+            onMarkAsPaid={markAsPaid}
+            onDeletePrediction={deletePrediction}
+          />
 
-          {/* Block 6: Summary - spans 2 columns on larger screens */}
-          <div className="lg:col-span-2 xl:col-span-1">
+          <ExpenseBlock
+            expenses={expenses}
+            onCreateExpense={createExpense}
+            onUpdateExpense={updateExpense}
+            onDeleteExpense={deleteExpense}
+          />
+
+          <div className="lg:col-span-2 xl:col-span-3">
             <SummaryBlock bills={bills} income={income} expenses={expenses} />
           </div>
         </div>
