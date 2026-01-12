@@ -5,13 +5,7 @@ import { Bill } from '@/hooks/useBills';
 import { IncomeEntry } from '@/hooks/useIncome';
 import { ExpenseEntry } from '@/hooks/useExpenses';
 import { useCategories, Category } from '@/hooks/useCategories';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { CategoryFilter } from './CategoryFilter';
 import { BarChart3, TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface SummaryBlockProps {
@@ -22,7 +16,7 @@ interface SummaryBlockProps {
 
 export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
   const { categories } = useCategories();
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
 
   const currentMonth = useMemo(() => {
     return format(new Date(), 'MMMM yyyy', { locale: ptBR });
@@ -34,9 +28,9 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
     const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     const filterByCategory = (items: any[], categoryField: string = 'categories') => {
-      if (categoryFilter === 'all') return items;
+      if (categoryFilters.length === 0) return items;
       return items.filter((item) =>
-        item[categoryField]?.some((cat: Category) => cat.id === categoryFilter)
+        item[categoryField]?.some((cat: Category) => categoryFilters.includes(cat.id))
       );
     };
 
@@ -95,7 +89,7 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
       monthlyIncomeTotal: monthlyIncome.reduce((sum, entry) => sum + entry.value, 0),
       monthlyIncomeCount: monthlyIncome.length,
     };
-  }, [bills, income, expenses, categoryFilter]);
+  }, [bills, income, expenses, categoryFilters]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -118,19 +112,11 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
             <p className="text-sm text-muted-foreground capitalize">{currentMonth}</p>
           </div>
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filtrar por categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CategoryFilter
+          categories={categories}
+          selectedCategories={categoryFilters}
+          onSelectionChange={setCategoryFilters}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -148,7 +134,7 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
             )}
             <span className="text-sm font-medium text-muted-foreground">Saldo do mês</span>
           </div>
-          <div className={`text-2xl font-bold ${balance >= 0 ? 'text-success' : 'text-destructive'}`}>
+          <div className={`text-lg font-bold ${balance >= 0 ? 'text-success' : 'text-destructive'}`}>
             {formatCurrency(balance)}
           </div>
         </div>
@@ -159,7 +145,7 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
             <TrendingUp className="w-4 h-4 text-success" />
             <span className="text-sm font-medium text-muted-foreground">Entradas</span>
           </div>
-          <div className="text-2xl font-bold text-success">
+          <div className="text-lg font-bold text-success">
             {formatCurrency(summary.monthlyIncomeTotal)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -173,7 +159,7 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
             <TrendingDown className="w-4 h-4 text-destructive" />
             <span className="text-sm font-medium text-muted-foreground">Saídas</span>
           </div>
-          <div className="text-2xl font-bold text-destructive">
+          <div className="text-lg font-bold text-destructive">
             {formatCurrency(summary.monthlyExpensesTotal)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -187,7 +173,7 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
             <AlertCircle className="w-4 h-4 text-warning" />
             <span className="text-sm font-medium text-muted-foreground">A pagar (mês)</span>
           </div>
-          <div className="text-2xl font-bold text-warning">
+          <div className="text-lg font-bold text-warning">
             {formatCurrency(summary.monthlyBillsToPayTotal)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -201,7 +187,7 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
             <CheckCircle className="w-4 h-4 text-success" />
             <span className="text-sm font-medium text-muted-foreground">Pagas (mês)</span>
           </div>
-          <div className="text-2xl font-bold text-success">
+          <div className="text-lg font-bold text-success">
             {formatCurrency(summary.monthlyBillsPaidTotal)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
@@ -215,7 +201,7 @@ export function SummaryBlock({ bills, income, expenses }: SummaryBlockProps) {
             <AlertCircle className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium text-muted-foreground">A pagar (total)</span>
           </div>
-          <div className="text-2xl font-bold text-foreground">
+          <div className="text-lg font-bold text-foreground">
             {formatCurrency(summary.totalBillsToPayTotal)}
           </div>
           <div className="text-xs text-muted-foreground mt-1">

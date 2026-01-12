@@ -120,6 +120,39 @@ export function useExpenses() {
     },
   });
 
+  const updateExpenseMutation = useMutation({
+    mutationFn: async ({
+      id,
+      data,
+      category_ids,
+    }: {
+      id: string;
+      data: Partial<ExpenseEntry>;
+      category_ids?: string[];
+    }) => {
+      const { error } = await supabase.from('expense_entries').update(data).eq('id', id);
+      if (error) throw error;
+
+      if (category_ids !== undefined) {
+        await supabase.from('expense_categories').delete().eq('expense_id', id);
+        if (category_ids.length > 0) {
+          const expenseCategoriesData = category_ids.map((categoryId) => ({
+            expense_id: id,
+            category_id: categoryId,
+          }));
+          await supabase.from('expense_categories').insert(expenseCategoriesData);
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      toast.success('Saída atualizada com sucesso!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar saída: ' + error.message);
+    },
+  });
+
   const deleteExpenseMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('expense_entries').delete().eq('id', id);
@@ -133,6 +166,14 @@ export function useExpenses() {
       toast.error('Erro ao excluir saída: ' + error.message);
     },
   });
+
+  return {
+    expenses: expensesQuery.data || [],
+    isLoading: expensesQuery.isLoading,
+    createExpense: createExpenseMutation.mutate,
+    updateExpense: updateExpenseMutation.mutate,
+    deleteExpense: deleteExpenseMutation.mutate,
+  };
 
   return {
     expenses: expensesQuery.data || [],

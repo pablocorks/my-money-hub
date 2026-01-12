@@ -265,6 +265,72 @@ export type Database = {
         }
         Relationships: []
       }
+      income_prediction_categories: {
+        Row: {
+          category_id: string
+          id: string
+          prediction_id: string
+        }
+        Insert: {
+          category_id: string
+          id?: string
+          prediction_id: string
+        }
+        Update: {
+          category_id?: string
+          id?: string
+          prediction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_prediction_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_prediction_categories_prediction_id_fkey"
+            columns: ["prediction_id"]
+            isOneToOne: false
+            referencedRelation: "income_predictions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_predictions: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          origin: string
+          paid_at: string | null
+          updated_at: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          origin: string
+          paid_at?: string | null
+          updated_at?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          origin?: string
+          paid_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birth_date: string

@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
 import BillsPage from "./pages/BillsPage";
 import IncomePage from "./pages/IncomePage";
+import PredictionsPage from "./pages/PredictionsPage";
+import AnnualSummaryPage from "./pages/AnnualSummaryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +64,8 @@ const App = () => (
             <Route path="/categorias" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
             <Route path="/contas-a-pagar" element={<ProtectedRoute><BillsPage /></ProtectedRoute>} />
             <Route path="/entradas" element={<ProtectedRoute><IncomePage /></ProtectedRoute>} />
+            <Route path="/previsoes" element={<ProtectedRoute><PredictionsPage /></ProtectedRoute>} />
+            <Route path="/resumo-anual" element={<ProtectedRoute><AnnualSummaryPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
