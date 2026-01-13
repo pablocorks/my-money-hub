@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Wallet, Tags, FileText, TrendingUp, LogOut, User, Menu, Calendar, BarChart3 } from 'lucide-react';
+import { Tags, FileText, TrendingUp, LogOut, User, Menu, Calendar, HandCoins, Database } from 'lucide-react';
 import { useState } from 'react';
 
 export function Header() {
@@ -17,12 +17,13 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { to: '/dashboard', label: 'Dashboard', icon: Wallet },
+    { to: '/dashboard', label: 'Dashboard', icon: TrendingUp },
     { to: '/categorias', label: 'Categorias', icon: Tags },
     { to: '/contas-a-pagar', label: 'Contas a Pagar', icon: FileText },
     { to: '/entradas', label: 'Entradas', icon: TrendingUp },
     { to: '/previsoes', label: 'Previsões', icon: Calendar },
-    { to: '/resumo-anual', label: 'Resumo Anual', icon: BarChart3 },
+    { to: '/emprestimos', label: 'Empréstimos', icon: HandCoins },
+    { to: '/backup', label: 'Backup', icon: Database },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -33,10 +34,10 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           <Link to="/dashboard" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-primary-foreground" />
+              <span className="text-lg">🧸</span>
             </div>
             <span className="text-xl font-display font-bold text-gradient hidden sm:inline">
-              FINACONTROL
+              PIMPOWS CONTROL
             </span>
           </Link>
 

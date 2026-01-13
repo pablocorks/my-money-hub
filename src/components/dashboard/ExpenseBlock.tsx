@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ExpenseEntry } from '@/hooks/useExpenses';
 import { useCategories } from '@/hooks/useCategories';
@@ -58,7 +58,7 @@ export function ExpenseBlock({
   // Filter to current month and apply category filters
   const filteredExpenses = useMemo(() => {
     let result = expenses.filter((entry) => {
-      const entryDate = new Date(entry.date);
+      const entryDate = parseISO(entry.date);
       const now = new Date();
       return (
         entryDate.getMonth() === now.getMonth() &&
@@ -185,7 +185,7 @@ export function ExpenseBlock({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="text-sm text-muted-foreground">
-                      {format(new Date(entry.date), 'dd/MM/yyyy', { locale: ptBR })}
+                      {format(parseISO(entry.date), 'dd/MM/yyyy', { locale: ptBR })}
                     </div>
                     <div className="font-medium truncate">{entry.name}</div>
                   </div>

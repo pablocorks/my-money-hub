@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Bill } from '@/hooks/useBills';
 import { CategoryTag } from './CategoryTag';
@@ -52,14 +52,22 @@ export function BillCard({
     setPayDialogOpen(false);
   };
 
+  // Parse date correctly to avoid timezone issues
+  const dueDate = parseISO(bill.due_date);
+  const isDueToday = isToday(dueDate);
+
   return (
     <>
-      <div className="py-3 px-4 bg-card rounded-lg border border-border hover:shadow-card transition-shadow">
+      <div className={`py-3 px-4 bg-card rounded-lg border hover:shadow-card transition-shadow ${
+        isDueToday && bill.status === 'pending' 
+          ? 'border-warning border-2 shadow-[0_0_10px_rgba(234,179,8,0.3)]' 
+          : 'border-border'
+      }`}>
         {/* Line 1: Date, Name, Installment, Value */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4 flex-1 min-w-0">
-            <div className="text-sm text-muted-foreground">
-              {format(new Date(bill.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+            <div className={`text-sm ${isDueToday && bill.status === 'pending' ? 'text-warning font-semibold' : 'text-muted-foreground'}`}>
+              {format(dueDate, 'dd/MM/yyyy', { locale: ptBR })}
             </div>
             <div className="font-medium truncate flex items-center gap-2">
               {bill.name}
