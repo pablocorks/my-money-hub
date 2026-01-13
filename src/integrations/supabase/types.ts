@@ -331,6 +331,45 @@ export type Database = {
         }
         Relationships: []
       }
+      loans: {
+        Row: {
+          created_at: string | null
+          due_date: string
+          id: string
+          installment_value: number
+          name: string
+          observation: string | null
+          paid_at: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          due_date: string
+          id?: string
+          installment_value: number
+          name: string
+          observation?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          installment_value?: number
+          name?: string
+          observation?: string | null
+          paid_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birth_date: string

@@ -10,7 +10,8 @@ import Categories from "./pages/Categories";
 import BillsPage from "./pages/BillsPage";
 import IncomePage from "./pages/IncomePage";
 import PredictionsPage from "./pages/PredictionsPage";
-import AnnualSummaryPage from "./pages/AnnualSummaryPage";
+import LoansPage from "./pages/LoansPage";
+import BackupPage from "./pages/BackupPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,7 +66,8 @@ const App = () => (
             <Route path="/contas-a-pagar" element={<ProtectedRoute><BillsPage /></ProtectedRoute>} />
             <Route path="/entradas" element={<ProtectedRoute><IncomePage /></ProtectedRoute>} />
             <Route path="/previsoes" element={<ProtectedRoute><PredictionsPage /></ProtectedRoute>} />
-            <Route path="/resumo-anual" element={<ProtectedRoute><AnnualSummaryPage /></ProtectedRoute>} />
+            <Route path="/emprestimos" element={<ProtectedRoute><LoansPage /></ProtectedRoute>} />
+            <Route path="/backup" element={<ProtectedRoute><BackupPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

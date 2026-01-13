@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { IncomePrediction } from '@/hooks/useIncomePredictions';
 import { useCategories } from '@/hooks/useCategories';
@@ -174,7 +174,7 @@ export function IncomePredictionBlock({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="text-sm text-muted-foreground">
-                      {format(new Date(prediction.date), 'dd/MM/yyyy', { locale: ptBR })}
+                      {format(parseISO(prediction.date), 'dd/MM/yyyy', { locale: ptBR })}
                     </div>
                     <div className="font-medium truncate">{prediction.origin}</div>
                   </div>
