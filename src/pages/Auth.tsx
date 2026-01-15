@@ -1,40 +1,120 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowRight } from 'lucide-react';
+import { LogIn, KeyRound, Lock } from 'lucide-react';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isFirstLogin, setIsFirstLogin] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    // Check if already logged in via localStorage
+    const isLoggedIn = localStorage.getItem('pimpows_logged_in');
+    if (isLoggedIn === 'true') {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [navigate]);
 
-  const handleGoogleLogin = async () => {
+  const handleLogin = async () => {
+    if (!username || !password) {
+      toast.error('Preencha o login e a senha');
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('*')
+        .eq('username', username)
+        .single();
 
-      if (error) {
-        toast.error('Erro ao fazer login com Google: ' + error.message);
+      if (error || !data) {
+        toast.error('Usuário não encontrado');
+        setLoading(false);
+        return;
+      }
+
+      if (data.password_hash !== password) {
+        toast.error('Senha incorreta');
+        setLoading(false);
+        return;
+      }
+
+      // Login successful
+      if (data.is_first_login) {
+        setIsFirstLogin(true);
+        setShowChangePassword(true);
+        toast.info('Primeiro acesso! Por favor, altere sua senha.');
+      } else {
+        localStorage.setItem('pimpows_logged_in', 'true');
+        toast.success('Login realizado com sucesso!');
+        navigate('/dashboard');
       }
     } catch (error) {
-      toast.error('Ocorreu um erro. Tente novamente.');
+      toast.error('Erro ao fazer login');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error('Preencha a nova senha e a confirmação');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      toast.error('A senha deve ter pelo menos 4 caracteres');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ password_hash: newPassword, is_first_login: false })
+        .eq('username', username);
+
+      if (error) {
+        toast.error('Erro ao alterar a senha');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('pimpows_logged_in', 'true');
+      toast.success('Senha alterada com sucesso!');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error('Erro ao alterar a senha');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (showChangePassword) {
+        handleChangePassword();
+      } else {
+        handleLogin();
+      }
     }
   };
 
@@ -57,11 +137,11 @@ export default function Auth() {
           <div className="mt-12 grid grid-cols-3 gap-6 max-w-md mx-auto">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="text-3xl font-bold text-primary-foreground">100%</div>
-              <div className="text-primary-foreground/70 text-sm">Gratuito</div>
+              <div className="text-primary-foreground/70 text-sm">Privado</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="text-3xl font-bold text-primary-foreground">Seus</div>
-              <div className="text-primary-foreground/70 text-sm">Dados privados</div>
+              <div className="text-primary-foreground/70 text-sm">Dados seguros</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="text-3xl font-bold text-primary-foreground">Fácil</div>
@@ -84,49 +164,103 @@ export default function Auth() {
 
           <Card className="border-0 shadow-card">
             <CardHeader className="space-y-1 pb-6 text-center">
-              <CardTitle className="text-2xl font-display">
-                Bem-vindo!
+              <CardTitle className="text-2xl font-display flex items-center justify-center gap-2">
+                {showChangePassword ? <KeyRound className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+                {showChangePassword ? 'Alterar Senha' : 'Bem-vindo!'}
               </CardTitle>
               <CardDescription>
-                Faça login com sua conta Google para acessar
+                {showChangePassword
+                  ? 'Defina sua nova senha de acesso'
+                  : 'Faça login para acessar o sistema'}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button
-                onClick={handleGoogleLogin}
-                className="w-full gradient-primary text-primary-foreground hover:opacity-90 transition-opacity h-12 text-base"
-                disabled={loading}
-              >
-                {loading ? (
-                  'Carregando...'
-                ) : (
-                  <>
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      />
-                    </svg>
-                    Continuar com Google
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
+            <CardContent className="space-y-4">
+              {!showChangePassword ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Usuário</Label>
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="Digite seu usuário"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Digite sua senha"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      disabled={loading}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleLogin}
+                    className="w-full gradient-primary text-primary-foreground hover:opacity-90 transition-opacity h-12 text-base"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      'Entrando...'
+                    ) : (
+                      <>
+                        <LogIn className="w-5 h-5 mr-2" />
+                        Entrar
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">Nova Senha</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      placeholder="Digite a nova senha"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Confirme a nova senha"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      disabled={loading}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleChangePassword}
+                    className="w-full gradient-primary text-primary-foreground hover:opacity-90 transition-opacity h-12 text-base"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      'Salvando...'
+                    ) : (
+                      <>
+                        <KeyRound className="w-5 h-5 mr-2" />
+                        Alterar Senha
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
 
               <p className="text-xs text-muted-foreground text-center mt-6">
-                Ao continuar, você concorda com nossos termos de uso e política de privacidade.
+                Sistema exclusivo para uso pessoal.
               </p>
             </CardContent>
           </Card>

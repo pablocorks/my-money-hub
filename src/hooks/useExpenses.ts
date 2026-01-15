@@ -4,6 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
+// Fixed user ID for single-user system
+const FIXED_USER_ID = 'familiacarneiroxavier';
+
 export interface ExpenseEntry {
   id: string;
   user_id: string;
@@ -16,16 +19,16 @@ export interface ExpenseEntry {
 }
 
 export function useExpenses() {
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const expensesQuery = useQuery({
-    queryKey: ['expenses', user?.id],
+    queryKey: ['expenses', FIXED_USER_ID],
     queryFn: async () => {
       const { data: entries, error } = await supabase
         .from('expense_entries')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', FIXED_USER_ID)
         .order('date', { ascending: false });
 
       if (error) throw error;
@@ -53,11 +56,11 @@ export function useExpenses() {
 
       return entriesWithCategories as ExpenseEntry[];
     },
-    enabled: !!user,
+    enabled: isLoggedIn,
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoggedIn) return;
 
     const channel = supabase
       .channel('expenses-changes')
@@ -67,10 +70,10 @@ export function useExpenses() {
           event: '*',
           schema: 'public',
           table: 'expense_entries',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${FIXED_USER_ID}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['expenses', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['expenses', FIXED_USER_ID] });
         }
       )
       .subscribe();
@@ -78,7 +81,7 @@ export function useExpenses() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [isLoggedIn, queryClient]);
 
   const createExpenseMutation = useMutation({
     mutationFn: async (data: {
@@ -93,7 +96,7 @@ export function useExpenses() {
         .from('expense_entries')
         .insert({
           ...entryData,
-          user_id: user!.id,
+          user_id: FIXED_USER_ID,
         })
         .select()
         .single();
@@ -172,13 +175,6 @@ export function useExpenses() {
     isLoading: expensesQuery.isLoading,
     createExpense: createExpenseMutation.mutate,
     updateExpense: updateExpenseMutation.mutate,
-    deleteExpense: deleteExpenseMutation.mutate,
-  };
-
-  return {
-    expenses: expensesQuery.data || [],
-    isLoading: expensesQuery.isLoading,
-    createExpense: createExpenseMutation.mutate,
     deleteExpense: deleteExpenseMutation.mutate,
   };
 }

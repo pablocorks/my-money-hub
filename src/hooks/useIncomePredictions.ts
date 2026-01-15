@@ -4,6 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
+// Fixed user ID for single-user system
+const FIXED_USER_ID = 'familiacarneiroxavier';
+
 export interface IncomePrediction {
   id: string;
   user_id: string;
@@ -17,16 +20,16 @@ export interface IncomePrediction {
 }
 
 export function useIncomePredictions() {
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const predictionsQuery = useQuery({
-    queryKey: ['income_predictions', user?.id],
+    queryKey: ['income_predictions', FIXED_USER_ID],
     queryFn: async () => {
       const { data: entries, error } = await supabase
         .from('income_predictions')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', FIXED_USER_ID)
         .order('date', { ascending: false });
 
       if (error) throw error;
@@ -54,11 +57,11 @@ export function useIncomePredictions() {
 
       return entriesWithCategories as IncomePrediction[];
     },
-    enabled: !!user,
+    enabled: isLoggedIn,
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoggedIn) return;
 
     const channel = supabase
       .channel('income-predictions-changes')
@@ -68,10 +71,10 @@ export function useIncomePredictions() {
           event: '*',
           schema: 'public',
           table: 'income_predictions',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${FIXED_USER_ID}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['income_predictions', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['income_predictions', FIXED_USER_ID] });
         }
       )
       .subscribe();
@@ -79,7 +82,7 @@ export function useIncomePredictions() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [isLoggedIn, queryClient]);
 
   const createPredictionMutation = useMutation({
     mutationFn: async (data: {
@@ -94,7 +97,7 @@ export function useIncomePredictions() {
         .from('income_predictions')
         .insert({
           ...entryData,
-          user_id: user!.id,
+          user_id: FIXED_USER_ID,
         })
         .select()
         .single();

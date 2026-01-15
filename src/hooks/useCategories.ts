@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+// Fixed user ID for single-user system
+const FIXED_USER_ID = 'familiacarneiroxavier';
+
 export interface Category {
   id: string;
   user_id: string;
@@ -13,29 +16,29 @@ export interface Category {
 }
 
 export function useCategories() {
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const categoriesQuery = useQuery({
-    queryKey: ['categories', user?.id],
+    queryKey: ['categories', FIXED_USER_ID],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', FIXED_USER_ID)
         .order('name', { ascending: true });
 
       if (error) throw error;
       return data as Category[];
     },
-    enabled: !!user,
+    enabled: isLoggedIn,
   });
 
   const createCategoryMutation = useMutation({
     mutationFn: async (data: { name: string; color: string; type: 'expense' | 'income' }) => {
       const { error } = await supabase.from('categories').insert({
         ...data,
-        user_id: user!.id,
+        user_id: FIXED_USER_ID,
       });
       if (error) throw error;
     },
