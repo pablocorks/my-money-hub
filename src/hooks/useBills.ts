@@ -4,6 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
+// Fixed user ID for single-user system
+const FIXED_USER_ID = 'familiacarneiroxavier';
+
 export interface Bill {
   id: string;
   user_id: string;
@@ -35,16 +38,16 @@ export interface CreateBillData {
 }
 
 export function useBills() {
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const billsQuery = useQuery({
-    queryKey: ['bills', user?.id],
+    queryKey: ['bills', FIXED_USER_ID],
     queryFn: async () => {
       const { data: bills, error } = await supabase
         .from('bills')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', FIXED_USER_ID)
         .order('due_date', { ascending: true });
 
       if (error) throw error;
@@ -73,12 +76,12 @@ export function useBills() {
 
       return billsWithCategories as Bill[];
     },
-    enabled: !!user,
+    enabled: isLoggedIn,
   });
 
   // Set up realtime subscription
   useEffect(() => {
-    if (!user) return;
+    if (!isLoggedIn) return;
 
     const channel = supabase
       .channel('bills-changes')
@@ -88,10 +91,10 @@ export function useBills() {
           event: '*',
           schema: 'public',
           table: 'bills',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${FIXED_USER_ID}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['bills', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['bills', FIXED_USER_ID] });
         }
       )
       .subscribe();
@@ -99,7 +102,7 @@ export function useBills() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [isLoggedIn, queryClient]);
 
   const createBillMutation = useMutation({
     mutationFn: async (data: CreateBillData) => {
@@ -114,7 +117,7 @@ export function useBills() {
           
           bills.push({
             ...billData,
-            user_id: user!.id,
+            user_id: FIXED_USER_ID,
             due_date: dueDate.toISOString().split('T')[0],
             current_installment: i + 1,
             status: 'pending' as const,
@@ -146,7 +149,7 @@ export function useBills() {
           .from('bills')
           .insert({
             ...billData,
-            user_id: user!.id,
+            user_id: FIXED_USER_ID,
             status: 'pending',
           })
           .select()
@@ -234,7 +237,7 @@ export function useBills() {
 
       // Create expense entry
       const { error: expenseError } = await supabase.from('expense_entries').insert({
-        user_id: user!.id,
+        user_id: FIXED_USER_ID,
         name: bill.name,
         date: new Date().toISOString().split('T')[0],
         value: paidValue,

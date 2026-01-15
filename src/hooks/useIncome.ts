@@ -4,6 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
+// Fixed user ID for single-user system
+const FIXED_USER_ID = 'familiacarneiroxavier';
+
 export interface IncomeEntry {
   id: string;
   user_id: string;
@@ -17,16 +20,16 @@ export interface IncomeEntry {
 }
 
 export function useIncome() {
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const incomeQuery = useQuery({
-    queryKey: ['income', user?.id],
+    queryKey: ['income', FIXED_USER_ID],
     queryFn: async () => {
       const { data: entries, error } = await supabase
         .from('income_entries')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', FIXED_USER_ID)
         .order('date', { ascending: false });
 
       if (error) throw error;
@@ -54,11 +57,11 @@ export function useIncome() {
 
       return entriesWithCategories as IncomeEntry[];
     },
-    enabled: !!user,
+    enabled: isLoggedIn,
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoggedIn) return;
 
     const channel = supabase
       .channel('income-changes')
@@ -68,10 +71,10 @@ export function useIncome() {
           event: '*',
           schema: 'public',
           table: 'income_entries',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${FIXED_USER_ID}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['income', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['income', FIXED_USER_ID] });
         }
       )
       .subscribe();
@@ -79,7 +82,7 @@ export function useIncome() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [isLoggedIn, queryClient]);
 
   const createIncomeMutation = useMutation({
     mutationFn: async (data: {
@@ -95,7 +98,7 @@ export function useIncome() {
         .from('income_entries')
         .insert({
           ...entryData,
-          user_id: user!.id,
+          user_id: FIXED_USER_ID,
         })
         .select()
         .single();

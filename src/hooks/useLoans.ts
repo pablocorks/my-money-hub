@@ -4,6 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 
+// Fixed user ID for single-user system
+const FIXED_USER_ID = 'familiacarneiroxavier';
+
 export interface Loan {
   id: string;
   user_id: string;
@@ -25,26 +28,26 @@ export interface CreateLoanData {
 }
 
 export function useLoans() {
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const loansQuery = useQuery({
-    queryKey: ['loans', user?.id],
+    queryKey: ['loans', FIXED_USER_ID],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('loans')
         .select('*')
-        .eq('user_id', user!.id)
+        .eq('user_id', FIXED_USER_ID)
         .order('due_date', { ascending: true });
 
       if (error) throw error;
       return data as Loan[];
     },
-    enabled: !!user,
+    enabled: isLoggedIn,
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!isLoggedIn) return;
 
     const channel = supabase
       .channel('loans-changes')
@@ -54,10 +57,10 @@ export function useLoans() {
           event: '*',
           schema: 'public',
           table: 'loans',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${FIXED_USER_ID}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['loans', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['loans', FIXED_USER_ID] });
         }
       )
       .subscribe();
@@ -65,7 +68,7 @@ export function useLoans() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [isLoggedIn, queryClient]);
 
   const createLoanMutation = useMutation({
     mutationFn: async (data: CreateLoanData) => {
@@ -73,7 +76,7 @@ export function useLoans() {
         .from('loans')
         .insert({
           ...data,
-          user_id: user!.id,
+          user_id: FIXED_USER_ID,
           status: 'pending',
         })
         .select()

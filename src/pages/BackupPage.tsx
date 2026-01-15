@@ -19,6 +19,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+// Fixed user ID for single-user system
+const FIXED_USER_ID = 'familiacarneiroxavier';
+
 interface BackupData {
   version: string;
   created_at: string;
@@ -38,13 +41,13 @@ interface BackupData {
 }
 
 export default function BackupPage() {
-  const { user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [loading, setLoading] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [backupToRestore, setBackupToRestore] = useState<BackupData | null>(null);
 
   const handleBackup = async () => {
-    if (!user) return;
+    if (!isLoggedIn) return;
     setLoading(true);
 
     try {
@@ -61,22 +64,22 @@ export default function BackupPage() {
         predictionCategoriesRes,
         loansRes,
       ] = await Promise.all([
-        supabase.from('categories').select('*').eq('user_id', user.id),
-        supabase.from('bills').select('*').eq('user_id', user.id),
-        supabase.from('bill_categories').select('*, bills!inner(user_id)').eq('bills.user_id', user.id),
-        supabase.from('income_entries').select('*').eq('user_id', user.id),
-        supabase.from('income_categories').select('*, income_entries!inner(user_id)').eq('income_entries.user_id', user.id),
-        supabase.from('expense_entries').select('*').eq('user_id', user.id),
-        supabase.from('expense_categories').select('*, expense_entries!inner(user_id)').eq('expense_entries.user_id', user.id),
-        supabase.from('income_predictions').select('*').eq('user_id', user.id),
-        supabase.from('income_prediction_categories').select('*, income_predictions!inner(user_id)').eq('income_predictions.user_id', user.id),
-        supabase.from('loans').select('*').eq('user_id', user.id),
+        supabase.from('categories').select('*').eq('user_id', FIXED_USER_ID),
+        supabase.from('bills').select('*').eq('user_id', FIXED_USER_ID),
+        supabase.from('bill_categories').select('*, bills!inner(user_id)').eq('bills.user_id', FIXED_USER_ID),
+        supabase.from('income_entries').select('*').eq('user_id', FIXED_USER_ID),
+        supabase.from('income_categories').select('*, income_entries!inner(user_id)').eq('income_entries.user_id', FIXED_USER_ID),
+        supabase.from('expense_entries').select('*').eq('user_id', FIXED_USER_ID),
+        supabase.from('expense_categories').select('*, expense_entries!inner(user_id)').eq('expense_entries.user_id', FIXED_USER_ID),
+        supabase.from('income_predictions').select('*').eq('user_id', FIXED_USER_ID),
+        supabase.from('income_prediction_categories').select('*, income_predictions!inner(user_id)').eq('income_predictions.user_id', FIXED_USER_ID),
+        supabase.from('loans').select('*').eq('user_id', FIXED_USER_ID),
       ]);
 
       const backup: BackupData = {
         version: '1.0',
         created_at: new Date().toISOString(),
-        user_id: user.id,
+        user_id: FIXED_USER_ID,
         data: {
           categories: categoriesRes.data || [],
           bills: billsRes.data || [],
@@ -135,7 +138,7 @@ export default function BackupPage() {
   };
 
   const handleRestore = async () => {
-    if (!user || !backupToRestore) return;
+    if (!isLoggedIn || !backupToRestore) return;
     setLoading(true);
     setRestoreDialogOpen(false);
 
@@ -151,23 +154,23 @@ export default function BackupPage() {
       ]);
 
       await Promise.all([
-        supabase.from('bills').delete().eq('user_id', user.id),
-        supabase.from('income_entries').delete().eq('user_id', user.id),
-        supabase.from('expense_entries').delete().eq('user_id', user.id),
-        supabase.from('income_predictions').delete().eq('user_id', user.id),
-        supabase.from('loans').delete().eq('user_id', user.id),
+        supabase.from('bills').delete().eq('user_id', FIXED_USER_ID),
+        supabase.from('income_entries').delete().eq('user_id', FIXED_USER_ID),
+        supabase.from('expense_entries').delete().eq('user_id', FIXED_USER_ID),
+        supabase.from('income_predictions').delete().eq('user_id', FIXED_USER_ID),
+        supabase.from('loans').delete().eq('user_id', FIXED_USER_ID),
       ]);
 
-      await supabase.from('categories').delete().eq('user_id', user.id);
+      await supabase.from('categories').delete().eq('user_id', FIXED_USER_ID);
 
-      // Restore data with new user_id
+      // Restore data with fixed user_id
       if (data.categories.length > 0) {
-        const categories = data.categories.map((c) => ({ ...c, user_id: user.id }));
+        const categories = data.categories.map((c) => ({ ...c, user_id: FIXED_USER_ID }));
         await supabase.from('categories').insert(categories);
       }
 
       if (data.bills.length > 0) {
-        const bills = data.bills.map((b) => ({ ...b, user_id: user.id }));
+        const bills = data.bills.map((b) => ({ ...b, user_id: FIXED_USER_ID }));
         await supabase.from('bills').insert(bills);
       }
 
@@ -176,7 +179,7 @@ export default function BackupPage() {
       }
 
       if (data.income_entries.length > 0) {
-        const income = data.income_entries.map((i) => ({ ...i, user_id: user.id }));
+        const income = data.income_entries.map((i) => ({ ...i, user_id: FIXED_USER_ID }));
         await supabase.from('income_entries').insert(income);
       }
 
@@ -185,7 +188,7 @@ export default function BackupPage() {
       }
 
       if (data.expense_entries.length > 0) {
-        const expenses = data.expense_entries.map((e) => ({ ...e, user_id: user.id }));
+        const expenses = data.expense_entries.map((e) => ({ ...e, user_id: FIXED_USER_ID }));
         await supabase.from('expense_entries').insert(expenses);
       }
 
@@ -194,7 +197,7 @@ export default function BackupPage() {
       }
 
       if (data.income_predictions.length > 0) {
-        const predictions = data.income_predictions.map((p) => ({ ...p, user_id: user.id }));
+        const predictions = data.income_predictions.map((p) => ({ ...p, user_id: FIXED_USER_ID }));
         await supabase.from('income_predictions').insert(predictions);
       }
 
@@ -203,7 +206,7 @@ export default function BackupPage() {
       }
 
       if (data.loans.length > 0) {
-        const loans = data.loans.map((l) => ({ ...l, user_id: user.id }));
+        const loans = data.loans.map((l) => ({ ...l, user_id: FIXED_USER_ID }));
         await supabase.from('loans').insert(loans);
       }
 
